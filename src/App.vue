@@ -2,17 +2,19 @@
 import { onMounted } from "vue";
 import { NConfigProvider, NIcon, NNotificationProvider } from "naive-ui";
 import {
-  AddCircleOutline,
-  CalendarOutline,
-  SettingsOutline,
-  TimeOutline,
-} from "@vicons/ionicons5";
+  ReceiptMoney20Regular,
+  CalendarRtl20Regular,
+  TableSettings24Regular,
+  MoneySettings20Regular,
+} from "@vicons/fluent";
 import type { GlobalThemeOverrides } from "naive-ui";
 import { useClientsStore } from "./stores/clients.store";
 import { useSettingsStore } from "./stores/settings.store";
+import { useIsMobile } from "./composables/useIsMobile";
 
 const settingsStore = useSettingsStore();
 const clientsStore = useClientsStore();
+const isMobile = useIsMobile();
 
 onMounted(async () => {
   await Promise.all([settingsStore.initialize(), clientsStore.initialize()]);
@@ -47,24 +49,21 @@ const themeOverrides: GlobalThemeOverrides = {
     <n-notification-provider>
       <div class="app-shell">
         <header class="app-header">
-          <div class="brand-block">
-            <p class="eyebrow">ThisIsInvoice!</p>
-          </div>
           <nav class="main-nav">
             <RouterLink to="/settings" aria-label="Paramètres">
               <n-icon class="nav-link-icon" size="35"
-                ><SettingsOutline
+                ><MoneySettings20Regular
               /></n-icon>
               <span class="nav-link-label">Paramètres</span>
             </RouterLink>
             <RouterLink to="/invoices/new" aria-label="Nouvelle facture">
               <n-icon class="nav-link-icon" size="35"
-                ><AddCircleOutline
+                ><ReceiptMoney20Regular
               /></n-icon>
               <span class="nav-link-label">Facture</span>
             </RouterLink>
             <div class="logo">
-              <n-icon :size="80" color="#fff">
+              <n-icon :size="isMobile ? 55 : 80" color="#fff">
                 <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
                   <path
                     style="fill: #fff"
@@ -78,13 +77,15 @@ const themeOverrides: GlobalThemeOverrides = {
             </div>
             <RouterLink to="/quotes/new" aria-label="Nouveau devis">
               <n-icon class="nav-link-icon" size="35"
-                ><CalendarOutline
+                ><CalendarRtl20Regular
               /></n-icon>
               <span class="nav-link-label">Devis</span>
             </RouterLink>
-            <RouterLink to="/invoices/history" aria-label="Historique">
-              <n-icon class="nav-link-icon" size="35"><TimeOutline /></n-icon>
-              <span class="nav-link-label">Historique</span>
+            <RouterLink to="/invoices/history" aria-label="Comptabilité">
+              <n-icon class="nav-link-icon" size="35"
+                ><TableSettings24Regular
+              /></n-icon>
+              <span class="nav-link-label">Compta</span>
             </RouterLink>
           </nav>
         </header>
@@ -92,11 +93,6 @@ const themeOverrides: GlobalThemeOverrides = {
         <main class="view-container">
           <RouterView />
         </main>
-      </div>
-
-      <div class="view-container footer">
-        This is Invoice (TII), a simple app to manage your quotes and invoices.
-        Made with Vue 3, TypeScript and Naive UI.
       </div>
     </n-notification-provider>
   </n-config-provider>
@@ -125,12 +121,63 @@ const themeOverrides: GlobalThemeOverrides = {
   z-index: 2;
 }
 
-.footer {
-  display: flex;
-  justify-content: center;
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: auto;
+  gap: 1rem;
   align-items: center;
-  height: 60px;
-  margin-bottom: 0;
-  background-color: #f5f5f5;
+  background: #0f617a;
+  color: #f6fbff;
+  box-shadow: 0 10px 22px rgba(13, 55, 74, 0.2);
+}
+
+.main-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem;
+  justify-self: center;
+  align-items: center;
+}
+
+.main-nav a {
+  color: #f6fbff;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.92rem;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+  height: 6rem;
+  width: 10rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.main-nav a:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.main-nav a.router-link-active {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.nav-link-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.nav-link-icon {
+  font-size: 1rem;
 }
 </style>

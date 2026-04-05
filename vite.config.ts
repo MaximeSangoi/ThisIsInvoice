@@ -31,7 +31,7 @@ export default defineConfig({
       manifest: {
         name: 'ThisIsInvoice!',
         short_name: 'tii',
-        description: 'PWA de facturation avec generation Factur-X',
+        description: 'Application de facturation avec generation Factur-X',
         theme_color: '#0b3a53',
         background_color: '#f6f8fb',
         display: 'standalone',

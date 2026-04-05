@@ -29,7 +29,10 @@ const grouped = computed<MonthGroup[]>(() => {
       month: "long",
       year: "numeric",
     }).format(new Date(Date.UTC(y!, m! - 1, 1)));
-    result.push({ label: label.charAt(0).toUpperCase() + label.slice(1), items });
+    result.push({
+      label: label.charAt(0).toUpperCase() + label.slice(1),
+      items,
+    });
   }
   return result;
 });
@@ -115,11 +118,7 @@ onMounted(scan);
               <td>{{ formatCurrency(inv.vatAmount) }}</td>
               <td>{{ formatCurrency(inv.grossAmount) }}</td>
               <td>
-                <n-button
-                  secondary
-                  size="small"
-                  @click="openPdf(inv.fileName)"
-                >
+                <n-button secondary size="small" @click="openPdf(inv.fileName)">
                   Ouvrir
                 </n-button>
               </td>
