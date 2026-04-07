@@ -30,7 +30,7 @@ export default defineConfig({
       includeAssets: ['favicon.ico'],
       manifest: {
         name: 'ThisIsInvoice!',
-        short_name: 'tii',
+        short_name: 'ThisIsInvoice',
         description: 'Application de facturation avec generation Factur-X',
         theme_color: '#0b3a53',
         background_color: '#f6f8fb',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, h, onMounted, reactive, ref } from "vue";
 import { toRaw } from "vue";
 import {
   NAlert,
@@ -8,13 +8,20 @@ import {
   NEmpty,
   NIcon,
   NInputNumber,
+  NSelect,
   NSpin,
   NTag,
   NDrawer,
   NDrawerContent,
   useNotification,
 } from "naive-ui";
-import { ChevronBack, ChevronDown, ChevronForward } from "@vicons/ionicons5";
+import {
+  Add,
+  ChevronBack,
+  ChevronDown,
+  ChevronForward,
+  Remove,
+} from "@vicons/ionicons5";
 import {
   MoreVertical20Regular,
   ReceiptAdd20Regular,
@@ -35,6 +42,38 @@ const clientsStore = useClientsStore();
 const notification = useNotification();
 const isMobile = useIsMobile();
 const activeClient = computed(() => clientsStore.selectedClient);
+
+const clientOptions = computed(() =>
+  clientsStore.clients.map((c) => ({
+    label: c.dailyRate
+      ? `${c.legalName} — ${formatCurrency(c.dailyRate)}/j`
+      : c.legalName,
+    value: c.id,
+    logo: c.logo ?? null,
+  })),
+);
+
+const renderClientLabel = (option: {
+  label?: string;
+  logo?: string | null;
+}) => {
+  const children: ReturnType<typeof h>[] = [];
+  if (option.logo) {
+    children.push(
+      h("img", {
+        src: option.logo,
+        style:
+          "width:20px;height:20px;object-fit:contain;border-radius:3px;margin-right:8px;vertical-align:middle",
+      }),
+    );
+  }
+  children.push(h("span", null, option.label));
+  return h("div", { style: "display:flex;align-items:center" }, children);
+};
+
+const onClientChange = (id: string | null) => {
+  clientsStore.selectClient(id);
+};
 
 // --- Invoice history (directory scan) ---
 const historyInvoices = ref<InvoiceMeta[]>([]);
@@ -300,7 +339,7 @@ const generate = async (): Promise<void> => {
         address: { ...activeClient.value!.address },
       },
       workedDays: Number(billing.workedDays),
-      dailyRate: 475,
+      dailyRate: activeClient.value!.dailyRate,
       vatRate: 20,
       currency: "EUR",
     };
@@ -481,7 +520,7 @@ const generate = async (): Promise<void> => {
       placement="bottom"
       :block-scroll="false"
       :trap-focus="true"
-      default-height="70%"
+      default-height="75%"
       class="invoice-quick-drawer"
     >
       <n-drawer-content title="Imprimer une facture">
@@ -536,14 +575,48 @@ const generate = async (): Promise<void> => {
         </div>
 
         <div class="field invoice-quick-field">
-          <label for="workedDays">Nombre de jours</label>
-          <n-input-number
-            id="workedDays"
-            v-model:value="billing.workedDays"
-            min="0"
-            :step="0.5"
-            class="invoice-quick-days"
+          <label>Client</label>
+          <n-select
+            :value="clientsStore.selectedClientId"
+            :options="clientOptions"
+            :render-label="renderClientLabel"
+            placeholder="Sélectionner un client"
+            clearable
+            @update:value="onClientChange"
           />
+        </div>
+
+        <div class="field invoice-quick-field">
+          <label for="workedDays">Nombre de jours</label>
+          <div class="days-input-group">
+            <n-input-number
+              id="workedDays"
+              v-model:value="billing.workedDays"
+              min="0"
+              :step="0.5"
+              :show-button="false"
+              inputmode="decimal"
+              class="invoice-quick-days"
+            />
+            <div class="days-btn-group">
+              <n-button
+                secondary
+                class="days-btn"
+                @click="
+                  billing.workedDays = Math.max(0, billing.workedDays - 0.5)
+                "
+              >
+                <n-icon><Remove /></n-icon>
+              </n-button>
+              <n-button
+                secondary
+                class="days-btn"
+                @click="billing.workedDays += 0.5"
+              >
+                <n-icon><Add /></n-icon>
+              </n-button>
+            </div>
+          </div>
         </div>
         <div class="submit-group">
           <n-button
@@ -683,11 +756,40 @@ const generate = async (): Promise<void> => {
 }
 
 .invoice-quick-days {
-  width: 100%;
+  flex: 1;
 }
 
-.invoice-quick-days :deep(.n-input-number) {
-  width: 100%;
+.days-input-group {
+  display: flex;
+  gap: 0;
+}
+
+.days-btn-group {
+  display: flex;
+  gap: 0.1rem;
+  justify-content: stretch;
+  margin-left: 0.2rem;
+}
+
+.days-btn {
+  flex: 1;
+  min-width: 2.5rem;
+  height: 100%;
+  padding: 0;
+  border-radius: 0 !important;
+}
+
+.days-btn:first-child {
+  border-top-right-radius: var(--n-border-radius);
+}
+
+.days-btn:last-child {
+  border-bottom-right-radius: var(--n-border-radius);
+}
+
+.days-input-group .invoice-quick-days :deep(.n-input) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .invoice-quick-field :deep(input) {
@@ -706,6 +808,7 @@ const generate = async (): Promise<void> => {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .history-header h3 {
@@ -766,7 +869,6 @@ const generate = async (): Promise<void> => {
   width: 100%;
   overflow-x: auto;
   max-height: 45vh;
-  margin-top: 2rem;
 }
 
 .table-scroll table {

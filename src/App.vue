@@ -4,7 +4,7 @@ import { NConfigProvider, NIcon, NNotificationProvider } from "naive-ui";
 import {
   ReceiptMoney20Regular,
   CalendarRtl20Regular,
-  TableSettings24Regular,
+  BuildingBank20Regular,
   MoneySettings20Regular,
 } from "@vicons/fluent";
 import type { GlobalThemeOverrides } from "naive-ui";
@@ -63,7 +63,7 @@ const themeOverrides: GlobalThemeOverrides = {
               <span class="nav-link-label">Facture</span>
             </RouterLink>
             <div class="logo">
-              <n-icon :size="isMobile ? 55 : 80" color="#fff">
+              <n-icon :size="isMobile ? 35 : 60" color="#fff">
                 <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
                   <path
                     style="fill: #fff"
@@ -83,7 +83,7 @@ const themeOverrides: GlobalThemeOverrides = {
             </RouterLink>
             <RouterLink to="/invoices/history" aria-label="Comptabilité">
               <n-icon class="nav-link-icon" size="35"
-                ><TableSettings24Regular
+                ><BuildingBank20Regular
               /></n-icon>
               <span class="nav-link-label">Compta</span>
             </RouterLink>
@@ -153,7 +153,7 @@ const themeOverrides: GlobalThemeOverrides = {
     background-color 0.2s ease,
     transform 0.2s ease;
   height: 6rem;
-  width: 10rem;
+  width: 8rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -179,5 +179,17 @@ const themeOverrides: GlobalThemeOverrides = {
 
 .nav-link-icon {
   font-size: 1rem;
+}
+
+@media (max-width: 720px) {
+  .logo {
+    width: 100px;
+  }
+  .arrondi {
+    top: 57px;
+    width: 120px;
+    height: 50px;
+    z-index: 2;
+  }
 }
 </style>

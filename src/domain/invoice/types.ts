@@ -21,6 +21,8 @@ export interface ClientProfile {
   legalName: string
   address: Address
   siret: string
+  dailyRate: number
+  logo?: string | null
 }
 
 export interface InvoiceInput {

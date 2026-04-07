@@ -7,6 +7,7 @@ import {
   NDataTable,
   NIcon,
   NInput,
+  NInputNumber,
   NModal,
   useNotification,
   type DataTableColumns,
@@ -19,10 +20,12 @@ import {
 import type { ClientProfile } from "../domain/invoice/types";
 import { useClientsStore } from "../stores/clients.store";
 import { useSettingsStore } from "../stores/settings.store";
+import { useIsMobile } from "../composables/useIsMobile";
 
 const settingsStore = useSettingsStore();
 const clientsStore = useClientsStore();
 const notification = useNotification();
+const isMobile = useIsMobile();
 
 // --- Company profile form ---
 // reactive() takes a snapshot — when initialize() replaces companyProfile.value later,
@@ -81,6 +84,8 @@ const makeEmptyClient = (): ClientProfile => ({
   legalName: "",
   address: { line1: "", postalCode: "", city: "", country: "FR" },
   siret: "",
+  dailyRate: 0,
+  logo: null,
 });
 
 const editingClient = ref<ClientProfile | null>(null);
@@ -112,6 +117,8 @@ const onSaveClient = async (): Promise<void> => {
       country: raw.address.country,
     },
     siret: raw.siret,
+    dailyRate: raw.dailyRate ?? 0,
+    logo: raw.logo ?? null,
   };
   await clientsStore.upsertClient(plain);
   showClientModal.value = false;
@@ -127,6 +134,32 @@ const onDeleteClient = async (row: ClientProfile): Promise<void> => {
     content: `Client "${row.legalName}" supprimé.`,
     duration: 3000,
   });
+};
+
+const readFileAsDataURL = (file: File): void => {
+  if (!editingClient.value) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (editingClient.value) editingClient.value.logo = reader.result as string;
+  };
+  reader.readAsDataURL(file);
+};
+
+const onLogoChange = (event: Event): void => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (file) readFileAsDataURL(file);
+};
+
+const dragging = ref(false);
+
+const onLogoDrop = (event: DragEvent): void => {
+  dragging.value = false;
+  const file = event.dataTransfer?.files[0];
+  if (file && file.type.startsWith("image/")) readFileAsDataURL(file);
+};
+
+const removeLogo = (): void => {
+  if (editingClient.value) editingClient.value.logo = null;
 };
 
 // --- Output directory ---
@@ -170,8 +203,21 @@ const onClearQuoteDir = async (): Promise<void> => {
   });
 };
 
-const clientColumns: DataTableColumns<ClientProfile> = [
+const clientColumns = ref<DataTableColumns<ClientProfile>>([
   { type: "selection", multiple: false },
+  {
+    title: "",
+    key: "logo",
+    width: 40,
+    render: (row) =>
+      row.logo
+        ? h("img", {
+            src: row.logo,
+            style:
+              "width:28px;height:28px;object-fit:contain;border-radius:4px",
+          })
+        : null,
+  },
   { title: "Nom légal", key: "legalName" },
   {
     title: "Ville",
@@ -183,25 +229,48 @@ const clientColumns: DataTableColumns<ClientProfile> = [
     key: "actions",
     width: 80,
     render: (row) =>
-      h("div", { style: "display:flex;gap:4px" }, [
-        h(
-          NButton,
-          { size: "small", quaternary: true, onClick: () => openEdit(row) },
-          () => h(NIcon, null, () => h(CreateOutline)),
-        ),
-        h(
-          NButton,
-          {
-            size: "small",
-            quaternary: true,
-            type: "error",
-            onClick: () => onDeleteClient(row),
-          },
-          () => h(NIcon, null, () => h(TrashOutline)),
-        ),
-      ]),
+      h(
+        "div",
+        {
+          style: "display:flex;gap:4px;",
+          class: "client-actions",
+        },
+        [
+          h(
+            NButton,
+            { size: "small", quaternary: true, onClick: () => openEdit(row) },
+            () => h(NIcon, null, () => h(CreateOutline)),
+          ),
+          h(
+            NButton,
+            {
+              size: "small",
+              quaternary: true,
+              type: "error",
+              onClick: () => onDeleteClient(row),
+            },
+            () => h(NIcon, null, () => h(TrashOutline)),
+          ),
+        ],
+      ),
   },
-];
+]);
+
+if (isMobile.value) {
+  clientColumns.value.splice(3, 1);
+}
+
+watch(isMobile, (mobile) => {
+  if (mobile) {
+    clientColumns.value.splice(3, 1);
+  } else if (!clientColumns.value.find((col) => "key" in col && col.key === "city")) {
+    clientColumns.value.splice(3, 0, {
+      title: "Ville",
+      key: "city",
+      render: (row) => row.address.city,
+    });
+  }
+});
 </script>
 
 <template>
@@ -370,6 +439,52 @@ const clientColumns: DataTableColumns<ClientProfile> = [
           <label>Pays</label>
           <n-input v-model:value="editingClient.address.country" />
         </div>
+        <div class="field">
+          <label>TJM (€)</label>
+          <n-input-number
+            v-model:value="editingClient.dailyRate"
+            :min="0"
+            :step="10"
+            :show-button="false"
+          />
+        </div>
+      </div>
+      <div class="field logo-field">
+        <label>Logo</label>
+        <div v-if="editingClient.logo" class="logo-filled">
+          <img :src="editingClient.logo" class="logo-preview" />
+          <div class="logo-actions">
+            <label class="logo-change-label">
+              <input
+                type="file"
+                accept="image/*"
+                class="logo-file-input"
+                @change="onLogoChange"
+              />
+              Changer
+            </label>
+            <n-button size="small" quaternary type="error" @click="removeLogo">
+              Retirer
+            </n-button>
+          </div>
+        </div>
+        <label
+          v-else
+          class="logo-dropzone"
+          :class="{ 'logo-dropzone--active': dragging }"
+          @dragover.prevent="dragging = true"
+          @dragenter.prevent="dragging = true"
+          @dragleave.prevent="dragging = false"
+          @drop.prevent="onLogoDrop"
+        >
+          <input
+            type="file"
+            accept="image/*"
+            class="logo-file-input"
+            @change="onLogoChange"
+          />
+          <span class="logo-dropzone-text">Cliquer ou déposer une image</span>
+        </label>
       </div>
       <div class="actions">
         <n-button type="primary" @click="onSaveClient">Enregistrer</n-button>
@@ -433,5 +548,83 @@ const clientColumns: DataTableColumns<ClientProfile> = [
 .output-dir-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.logo-field {
+  margin-top: 0.5rem;
+}
+
+.logo-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  border: 2px dashed var(--n-border-color, #ccc);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.logo-dropzone:hover,
+.logo-dropzone--active {
+  border-color: var(--n-color-target, #18a058);
+  background: rgba(24, 160, 88, 0.04);
+}
+
+.logo-dropzone-text {
+  font-size: 0.85rem;
+  color: var(--n-text-color-disabled, #999);
+  pointer-events: none;
+}
+
+.logo-filled {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo-preview {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid var(--n-border-color, #e0e0e0);
+}
+
+.logo-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-change-label {
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--n-border-color, #ddd);
+  background: var(--n-color, #fff);
+  transition: background 0.2s;
+}
+
+.logo-change-label:hover {
+  background: var(--n-color-hover, #f5f5f5);
+}
+
+.logo-file-input {
+  display: none;
+}
+
+:deep(.n-data-table-td--last-col) {
+  padding-right: 0;
+}
+
+@media (max-width: 1024px) {
+  :deep(.client-actions) {
+    flex-direction: column;
+    padding-right: 0;
+  }
 }
 </style>
