@@ -508,7 +508,12 @@ const generate = async (): Promise<void> => {
       <MoreVertical20Regular />
     </n-icon>
 
-    <n-button @click="activate" size="large" type="primary">
+    <n-button
+      @click="activate"
+      size="large"
+      type="primary"
+      class="invoice-create-button"
+    >
       <template #icon>
         <n-icon><ReceiptAdd20Regular /></n-icon>
       </template>
@@ -520,7 +525,7 @@ const generate = async (): Promise<void> => {
       placement="bottom"
       :block-scroll="false"
       :trap-focus="true"
-      default-height="75%"
+      default-height="80%"
       class="invoice-quick-drawer"
     >
       <n-drawer-content title="Imprimer une facture">
@@ -577,6 +582,7 @@ const generate = async (): Promise<void> => {
         <div class="field invoice-quick-field">
           <label>Client</label>
           <n-select
+            size="large"
             :value="clientsStore.selectedClientId"
             :options="clientOptions"
             :render-label="renderClientLabel"
@@ -906,6 +912,10 @@ const generate = async (): Promise<void> => {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     row-gap: 1rem;
     column-gap: 1rem;
+  }
+
+  .invoice-create-button {
+    width: 100%;
   }
 }
 

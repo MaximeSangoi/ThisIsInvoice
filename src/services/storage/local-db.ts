@@ -1,10 +1,12 @@
 import Dexie, { type Table } from 'dexie'
 import { toRaw } from 'vue'
 import type { ClientProfile, CompanyProfile } from '../../domain/invoice/types'
+import type { AccountingMonth } from '../../domain/accounting/types'
 
 class TiiDatabase extends Dexie {
   settings!: Table<CompanyProfile, string>
   clients!: Table<ClientProfile, string>
+  accountingMonths!: Table<AccountingMonth, string>
 
   constructor() {
     super('tii-db')
@@ -24,6 +26,11 @@ class TiiDatabase extends Dexie {
       invoices: null,   // drop table
       artifacts: null,  // drop table
       clients: 'id,legalName',
+    })
+    this.version(4).stores({
+      settings: 'id',
+      clients: 'id,legalName',
+      accountingMonths: 'yearMonth',
     })
   }
 }
@@ -92,3 +99,15 @@ export const loadQuoteDirHandle = async (): Promise<FileSystemDirectoryHandle | 
 export const clearQuoteDirHandle = async (): Promise<void> => {
   await db.settings.delete('quote-dir-handle')
 }
+
+// --- Accounting months ---
+
+export const loadAccountingMonth = async (yearMonth: string): Promise<AccountingMonth | undefined> =>
+  db.accountingMonths.get(yearMonth)
+
+export const saveAccountingMonth = async (month: AccountingMonth): Promise<void> => {
+  await db.accountingMonths.put(toPlain(month))
+}
+
+export const listAccountingMonths = async (): Promise<AccountingMonth[]> =>
+  db.accountingMonths.toArray()

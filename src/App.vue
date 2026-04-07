@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import { NConfigProvider, NIcon, NNotificationProvider } from "naive-ui";
 import {
   ReceiptMoney20Regular,
@@ -11,10 +11,13 @@ import type { GlobalThemeOverrides } from "naive-ui";
 import { useClientsStore } from "./stores/clients.store";
 import { useSettingsStore } from "./stores/settings.store";
 import { useIsMobile } from "./composables/useIsMobile";
+import { useSwipeNavigation } from "./composables/useSwipeNavigation";
 
 const settingsStore = useSettingsStore();
 const clientsStore = useClientsStore();
 const isMobile = useIsMobile();
+const mainEl = ref<HTMLElement | null>(null);
+useSwipeNavigation(mainEl);
 
 onMounted(async () => {
   await Promise.all([settingsStore.initialize(), clientsStore.initialize()]);
@@ -81,7 +84,7 @@ const themeOverrides: GlobalThemeOverrides = {
               /></n-icon>
               <span class="nav-link-label">Devis</span>
             </RouterLink>
-            <RouterLink to="/invoices/history" aria-label="Comptabilité">
+            <RouterLink to="/invoices/accounting" aria-label="Comptabilité">
               <n-icon class="nav-link-icon" size="35"
                 ><BuildingBank20Regular
               /></n-icon>
@@ -90,7 +93,7 @@ const themeOverrides: GlobalThemeOverrides = {
           </nav>
         </header>
 
-        <main class="view-container">
+        <main ref="mainEl" class="view-container">
           <RouterView />
         </main>
       </div>

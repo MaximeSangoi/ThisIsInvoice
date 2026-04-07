@@ -9,11 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vicons/ionicons5": "^0.13.0",
     "@vicons/fluent": "^0.13.0",
+    "@vicons/ionicons5": "^0.13.0",
     "dexie": "^4.3.0",
     "naive-ui": "^2.44.1",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.6.205",
     "pinia": "^3.0.4",
     "vue": "^3.5.25",
     "vue-router": "^5.0.3"

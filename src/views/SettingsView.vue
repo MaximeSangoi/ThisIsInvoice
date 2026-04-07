@@ -263,7 +263,9 @@ if (isMobile.value) {
 watch(isMobile, (mobile) => {
   if (mobile) {
     clientColumns.value.splice(3, 1);
-  } else if (!clientColumns.value.find((col) => "key" in col && col.key === "city")) {
+  } else if (
+    !clientColumns.value.find((col) => "key" in col && col.key === "city")
+  ) {
     clientColumns.value.splice(3, 0, {
       title: "Ville",
       key: "city",
