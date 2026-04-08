@@ -100,6 +100,17 @@ export const clearQuoteDirHandle = async (): Promise<void> => {
   await db.settings.delete('quote-dir-handle')
 }
 
+// --- Onboarding flag ---
+
+export const loadOnboardingCompleted = async (): Promise<boolean> => {
+  const record = await db.settings.get('onboarding-completed') as { id: string; value: boolean } | undefined
+  return record?.value === true
+}
+
+export const saveOnboardingCompleted = async (): Promise<void> => {
+  await db.settings.put({ id: 'onboarding-completed', value: true } as any)
+}
+
 // --- Accounting months ---
 
 export const loadAccountingMonth = async (yearMonth: string): Promise<AccountingMonth | undefined> =>

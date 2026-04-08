@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useSettingsStore } from '../stores/settings.store'
 import InvoiceCreateView from '../views/InvoiceCreateView.vue'
 import AccountingYearView from '../views/AccountingYearView.vue'
 import AccountingMonthView from '../views/AccountingMonthView.vue'
@@ -16,6 +17,15 @@ const router = createRouter({
     { path: '/invoices/history', redirect: '/invoices/accounting' },
     { path: '/quotes/new', component: QuoteCreateView },
   ],
+})
+
+router.beforeEach((to) => {
+  const settingsStore = useSettingsStore()
+  if (!settingsStore.initialized) return true
+  if (!settingsStore.onboardingCompleted && to.path !== '/settings') {
+    return '/settings'
+  }
+  return true
 })
 
 export default router

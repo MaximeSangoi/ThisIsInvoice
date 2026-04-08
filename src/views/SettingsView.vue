@@ -16,16 +16,97 @@ import {
   CreateOutline,
   TrashOutline,
   FolderOpenOutline,
+  SwapHorizontalOutline,
 } from "@vicons/ionicons5";
 import type { ClientProfile } from "../domain/invoice/types";
 import { useClientsStore } from "../stores/clients.store";
 import { useSettingsStore } from "../stores/settings.store";
+import { useAccountingStore } from "../stores/accounting.store";
 import { useIsMobile } from "../composables/useIsMobile";
+import { useRouter } from "vue-router";
+import ExportImportModal from "./ExportImportModal.vue";
 
 const settingsStore = useSettingsStore();
 const clientsStore = useClientsStore();
+const accountingStore = useAccountingStore();
 const notification = useNotification();
 const isMobile = useIsMobile();
+const router = useRouter();
+
+// --- Onboarding ---
+const showWelcomeModal = ref(!settingsStore.onboardingCompleted);
+const showFolderSetupModal = ref(false);
+const showExportImportModal = ref(false);
+
+const onManualSetup = (): void => {
+  showWelcomeModal.value = false;
+};
+
+const onImportSetup = (): void => {
+  showWelcomeModal.value = false;
+  showExportImportModal.value = true;
+};
+
+const onImported = async (): Promise<void> => {
+  // Force-reload all stores after import
+  await Promise.all([
+    settingsStore.initialize(true),
+    clientsStore.initialize(true),
+    accountingStore.initialize(true),
+  ]);
+  // If we are in onboarding, proceed to folder selection step
+  if (!settingsStore.onboardingCompleted) {
+    showFolderSetupModal.value = true;
+  }
+};
+
+const onFinishOnboarding = (): void => {
+  if (!settingsStore.isConfigured) {
+    notification.warning({
+      content:
+        "Veuillez renseigner au minimum le SIRET, l'IBAN et le numéro de TVA avant de continuer.",
+      duration: 4000,
+    });
+    return;
+  }
+  showFolderSetupModal.value = true;
+};
+
+const onSkipFolders = async (): Promise<void> => {
+  showFolderSetupModal.value = false;
+  await settingsStore.completeOnboarding();
+  router.push("/invoices/new");
+};
+
+const onPickInvoiceDirOnboarding = async (): Promise<void> => {
+  try {
+    await settingsStore.pickOutputDir();
+    notification.success({
+      content: `Dossier "${settingsStore.outputDirName}" sélectionné pour les factures.`,
+      duration: 3000,
+    });
+  } catch {
+    // User cancelled
+  }
+};
+
+const onPickQuoteDirOnboarding = async (): Promise<void> => {
+  try {
+    await settingsStore.pickQuoteDir();
+    notification.success({
+      content: `Dossier "${settingsStore.quoteDirName}" sélectionné pour les devis.`,
+      duration: 3000,
+    });
+  } catch {
+    // User cancelled
+  }
+};
+
+const onFinishFolderSetup = async (): Promise<void> => {
+  showFolderSetupModal.value = false;
+  await settingsStore.completeOnboarding();
+  router.push("/invoices/new");
+};
 
 // --- Company profile form ---
 // reactive() takes a snapshot — when initialize() replaces companyProfile.value later,
@@ -276,8 +357,96 @@ watch(isMobile, (mobile) => {
 </script>
 
 <template>
+  <!-- Welcome modal (first launch only) -->
+  <n-modal
+    v-model:show="showWelcomeModal"
+    preset="card"
+    title="Bienvenue sur This Is Invoice !"
+    :closable="false"
+    :mask-closable="false"
+    :style="{ width: 'min(480px, 92vw)' }"
+  >
+    <p style="margin: 0 0 0.5rem; line-height: 1.5">
+      L'application a besoin d'être configurée avant la première utilisation.
+    </p>
+    <p style="margin: 0 0 1.2rem; color: #666; font-size: 0.9rem">
+      Vous pouvez remplir les paramètres manuellement ou importer une
+      configuration existante depuis un autre appareil.
+    </p>
+    <div style="display: flex; gap: 0.7rem; flex-wrap: wrap">
+      <n-button type="primary" @click="onManualSetup">
+        Configurer manuellement
+      </n-button>
+      <n-button @click="onImportSetup">
+        <template #icon>
+          <n-icon><SwapHorizontalOutline /></n-icon>
+        </template>
+        Importer une configuration
+      </n-button>
+    </div>
+  </n-modal>
+
+  <!-- Folder setup modal (second onboarding step) -->
+  <n-modal
+    v-model:show="showFolderSetupModal"
+    preset="card"
+    title="Dossiers de synchronisation"
+    :closable="false"
+    :mask-closable="false"
+    :style="{ width: 'min(520px, 92vw)' }"
+  >
+    <p style="margin: 0 0 1rem; line-height: 1.5; color: #666; font-size: 0.9rem">
+      Choisissez les dossiers où enregistrer automatiquement vos factures et
+      devis. Vous pouvez aussi passer cette étape et les configurer plus tard.
+    </p>
+
+    <div class="folder-setup-row">
+      <div class="folder-setup-item">
+        <strong>Factures</strong>
+        <span v-if="settingsStore.outputDirName" class="dir-name">
+          <n-icon size="20"><FolderOpenOutline /></n-icon>
+          {{ settingsStore.outputDirName }}
+        </span>
+        <span v-else class="muted">Non configuré</span>
+        <n-button size="small" @click="onPickInvoiceDirOnboarding">
+          {{ settingsStore.outputDirName ? "Changer" : "Choisir un dossier" }}
+        </n-button>
+      </div>
+      <div class="folder-setup-item">
+        <strong>Devis</strong>
+        <span v-if="settingsStore.quoteDirName" class="dir-name">
+          <n-icon size="20"><FolderOpenOutline /></n-icon>
+          {{ settingsStore.quoteDirName }}
+        </span>
+        <span v-else class="muted">Non configuré</span>
+        <n-button size="small" @click="onPickQuoteDirOnboarding">
+          {{ settingsStore.quoteDirName ? "Changer" : "Choisir un dossier" }}
+        </n-button>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 1.2rem">
+      <n-button type="primary" @click="onFinishFolderSetup">Terminer</n-button>
+      <n-button quaternary @click="onSkipFolders">Passer cette étape</n-button>
+    </div>
+  </n-modal>
+
+  <!-- Export / Import modal -->
+  <ExportImportModal
+    v-model:show="showExportImportModal"
+    @imported="onImported"
+  />
+
   <n-card class="panel" :bordered="false">
-    <h2>Informations entreprise</h2>
+    <div class="panel-header">
+      <h2>Informations entreprise</h2>
+      <n-button size="small" @click="showExportImportModal = true">
+        <template #icon>
+          <n-icon><SwapHorizontalOutline /></n-icon>
+        </template>
+        Export / Import
+      </n-button>
+    </div>
     <p class="meta">Ces informations concernent votre entreprise</p>
 
     <div class="grid-2">
@@ -325,6 +494,14 @@ watch(isMobile, (mobile) => {
 
     <div class="actions">
       <n-button type="primary" @click="onSave">Enregistrer</n-button>
+      <n-button
+        v-if="!settingsStore.onboardingCompleted"
+        type="primary"
+        ghost
+        @click="onFinishOnboarding"
+      >
+        Terminer la configuration
+      </n-button>
       <n-alert v-if="saveMessage.text" type="success" :show-icon="false">{{
         saveMessage.text
       }}</n-alert>
@@ -496,18 +673,16 @@ watch(isMobile, (mobile) => {
 </template>
 
 <style scoped>
+.panel .panel-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .panel-clients,
 .panel-output {
   margin-top: 18px;
-
-  .panel-header {
-    display: grid;
-    grid-template-columns: auto 140px;
-
-    .n-button {
-      place-self: center end;
-    }
-  }
 }
 
 .output-section-title {
@@ -628,5 +803,27 @@ watch(isMobile, (mobile) => {
     flex-direction: column;
     padding-right: 0;
   }
+}
+
+.folder-setup-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.folder-setup-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.folder-setup-item strong {
+  min-width: 70px;
+}
+
+.muted {
+  color: #999;
+  font-size: 0.9rem;
 }
 </style>

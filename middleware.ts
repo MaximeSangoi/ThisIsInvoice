@@ -1,8 +1,18 @@
 export default function middleware(req) {
-  // Allow PWA assets through without auth so Chrome can install the PWA
+  // Allow PWA assets through without auth
   const url = new URL(req.url);
-  const publicPaths = ["/manifest.webmanifest", "/sw.js", "/registerSW.js", "/workbox-", "/pwa-", "/logo-site.svg"];
-  if (publicPaths.some((p) => url.pathname.startsWith(p))) {
+  const publicPrefixes = [
+    "/assets/",
+    "/manifest.webmanifest",
+    "/sw.js",
+    "/registerSW.js",
+    "/workbox-",
+    "/pwa-",
+    "/logo-site.svg",
+    "/favicon.ico",
+    "/robots.txt",
+  ];
+  if (publicPrefixes.some((p) => url.pathname.startsWith(p))) {
     return;
   }
 

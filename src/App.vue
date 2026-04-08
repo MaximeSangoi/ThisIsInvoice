@@ -20,6 +20,8 @@ const mainEl = ref<HTMLElement | null>(null);
 useSwipeNavigation(mainEl);
 
 onMounted(async () => {
+  // Stores are already initialized in main.ts before mount.
+  // This is kept as a no-op safety net (initialize() skips if already done).
   await Promise.all([settingsStore.initialize(), clientsStore.initialize()]);
 });
 

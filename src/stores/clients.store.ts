@@ -12,8 +12,8 @@ export const useClientsStore = defineStore('clients', () => {
     () => clients.value.find((c) => c.id === selectedClientId.value) ?? null,
   )
 
-  const initialize = async (): Promise<void> => {
-    if (initialized.value) return
+  const initialize = async (force = false): Promise<void> => {
+    if (initialized.value && !force) return
     clients.value = await listClients()
     selectedClientId.value = await loadSelectedClientId()
     initialized.value = true

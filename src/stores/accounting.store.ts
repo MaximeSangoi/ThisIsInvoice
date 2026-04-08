@@ -7,8 +7,8 @@ export const useAccountingStore = defineStore('accounting', () => {
   const months = ref<Map<string, AccountingMonth>>(new Map())
   const initialized = ref(false)
 
-  const initialize = async (): Promise<void> => {
-    if (initialized.value) return
+  const initialize = async (force = false): Promise<void> => {
+    if (initialized.value && !force) return
     const all = await listAccountingMonths()
     const map = new Map<string, AccountingMonth>()
     for (const m of all) map.set(m.yearMonth, m)

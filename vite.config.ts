@@ -5,6 +5,7 @@ import { VitePWA } from "vite-plugin-pwa";
 // https://vite.dev/config/
 export default defineConfig({
   build: {
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -22,6 +23,14 @@ export default defineConfig({
             id.includes("node_modules/vue-router")
           ) {
             return "vue-core";
+          }
+
+          if (id.includes("node_modules/pdfjs-dist")) {
+            return "pdfjs";
+          }
+
+          if (id.includes("node_modules/pdf-lib")) {
+            return "pdf-lib";
           }
 
           if (id.includes("node_modules")) {

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, toRaw } from 'vue'
 import type { CompanyProfile } from '../domain/invoice/types'
-import { loadCompanyProfile, saveCompanyProfile, loadOutputDirHandle, saveOutputDirHandle, clearOutputDirHandle, loadQuoteDirHandle, saveQuoteDirHandle, clearQuoteDirHandle } from '../services/storage/local-db'
+import { loadCompanyProfile, saveCompanyProfile, loadOutputDirHandle, saveOutputDirHandle, clearOutputDirHandle, loadQuoteDirHandle, saveQuoteDirHandle, clearQuoteDirHandle, loadOnboardingCompleted, saveOnboardingCompleted } from '../services/storage/local-db'
 
 const defaultCompanyProfile = (): CompanyProfile => ({
   id: 'company-profile',
@@ -22,6 +22,7 @@ const defaultCompanyProfile = (): CompanyProfile => ({
 export const useSettingsStore = defineStore('settings', () => {
   const companyProfile = ref<CompanyProfile>(defaultCompanyProfile())
   const initialized = ref(false)
+  const onboardingCompleted = ref(false)
   const outputDirHandle = ref<FileSystemDirectoryHandle | null>(null)
   const outputDirName = ref<string | null>(null)
   const quoteDirHandle = ref<FileSystemDirectoryHandle | null>(null)
@@ -36,14 +37,16 @@ export const useSettingsStore = defineStore('settings', () => {
       ),
   )
 
-  const initialize = async (): Promise<void> => {
-    if (initialized.value) {
+  const initialize = async (force = false): Promise<void> => {
+    if (initialized.value && !force) {
       return
     }
 
     const savedProfile = await loadCompanyProfile()
     if (savedProfile) {
       companyProfile.value = savedProfile
+    } else {
+      companyProfile.value = defaultCompanyProfile()
     }
 
     const savedHandle = await loadOutputDirHandle()
@@ -58,7 +61,14 @@ export const useSettingsStore = defineStore('settings', () => {
       quoteDirName.value = savedQuoteHandle.name
     }
 
+    onboardingCompleted.value = await loadOnboardingCompleted()
+
     initialized.value = true
+  }
+
+  const completeOnboarding = async (): Promise<void> => {
+    onboardingCompleted.value = true
+    await saveOnboardingCompleted()
   }
 
   const save = async (): Promise<void> => {
@@ -120,12 +130,14 @@ export const useSettingsStore = defineStore('settings', () => {
     companyProfile,
     initialized,
     isConfigured,
+    onboardingCompleted,
     outputDirHandle,
     outputDirName,
     quoteDirHandle,
     quoteDirName,
     initialize,
     save,
+    completeOnboarding,
     pickOutputDir,
     removeOutputDir,
     verifyOutputDir,
