@@ -77,7 +77,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
   const pickOutputDir = async (): Promise<void> => {
     const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' })
-    console.log('Selected output directory handle:', handle)
     outputDirHandle.value = handle
     outputDirName.value = handle.name
     await saveOutputDirHandle(handle)

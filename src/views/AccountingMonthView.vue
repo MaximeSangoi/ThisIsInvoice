@@ -251,16 +251,19 @@ import { h } from "vue";
         <n-input
           v-model:value="newDate"
           placeholder="Date (AAAA-MM-JJ)"
+          aria-label="Date de la dépense"
           class="add-date"
         />
         <n-input
           v-model:value="newLabel"
           placeholder="Libellé"
+          aria-label="Libellé de la dépense"
           class="add-label"
         />
         <n-input-number
           v-model:value="newAmount"
           placeholder="Montant"
+          aria-label="Montant de la dépense"
           :show-button="false"
           class="add-amount"
         />

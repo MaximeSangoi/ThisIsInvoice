@@ -294,6 +294,7 @@ const clientColumns = ref<DataTableColumns<ClientProfile>>([
       row.logo
         ? h("img", {
             src: row.logo,
+            alt: row.legalName + " logo",
             style:
               "width:28px;height:28px;object-fit:contain;border-radius:4px",
           })
@@ -319,7 +320,7 @@ const clientColumns = ref<DataTableColumns<ClientProfile>>([
         [
           h(
             NButton,
-            { size: "small", quaternary: true, onClick: () => openEdit(row) },
+            { size: "small", quaternary: true, "aria-label": `Éditer ${row.legalName}`, onClick: () => openEdit(row) },
             () => h(NIcon, null, () => h(CreateOutline)),
           ),
           h(
@@ -328,6 +329,7 @@ const clientColumns = ref<DataTableColumns<ClientProfile>>([
               size: "small",
               quaternary: true,
               type: "error",
+              "aria-label": `Supprimer ${row.legalName}`,
               onClick: () => onDeleteClient(row),
             },
             () => h(NIcon, null, () => h(TrashOutline)),
@@ -595,32 +597,33 @@ watch(isMobile, (mobile) => {
     <template v-if="editingClient">
       <div class="grid-2">
         <div class="field">
-          <label>Nom légal</label>
-          <n-input v-model:value="editingClient.legalName" />
+          <label for="client-legalName">Nom légal</label>
+          <n-input id="client-legalName" v-model:value="editingClient.legalName" />
         </div>
         <div class="field">
-          <label>SIRET</label>
-          <n-input v-model:value="editingClient.siret" />
+          <label for="client-siret">SIRET</label>
+          <n-input id="client-siret" v-model:value="editingClient.siret" />
         </div>
         <div class="field">
-          <label>Adresse</label>
-          <n-input v-model:value="editingClient.address.line1" />
+          <label for="client-address">Adresse</label>
+          <n-input id="client-address" v-model:value="editingClient.address.line1" />
         </div>
         <div class="field">
-          <label>Code postal</label>
-          <n-input v-model:value="editingClient.address.postalCode" />
+          <label for="client-postalCode">Code postal</label>
+          <n-input id="client-postalCode" v-model:value="editingClient.address.postalCode" />
         </div>
         <div class="field">
-          <label>Ville</label>
-          <n-input v-model:value="editingClient.address.city" />
+          <label for="client-city">Ville</label>
+          <n-input id="client-city" v-model:value="editingClient.address.city" />
         </div>
         <div class="field">
-          <label>Pays</label>
-          <n-input v-model:value="editingClient.address.country" />
+          <label for="client-country">Pays</label>
+          <n-input id="client-country" v-model:value="editingClient.address.country" />
         </div>
         <div class="field">
-          <label>TJM (€)</label>
+          <label for="client-dailyRate">TJM (€)</label>
           <n-input-number
+            id="client-dailyRate"
             v-model:value="editingClient.dailyRate"
             :min="0"
             :step="10"
@@ -631,7 +634,7 @@ watch(isMobile, (mobile) => {
       <div class="field logo-field">
         <label>Logo</label>
         <div v-if="editingClient.logo" class="logo-filled">
-          <img :src="editingClient.logo" class="logo-preview" />
+          <img :src="editingClient.logo" class="logo-preview" :alt="editingClient.legalName + ' logo'" />
           <div class="logo-actions">
             <label class="logo-change-label">
               <input

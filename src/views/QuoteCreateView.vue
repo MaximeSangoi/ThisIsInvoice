@@ -203,7 +203,7 @@ const generate = async (): Promise<void> => {
 
     const generated = await generateQuoteArtifacts(payload);
 
-    const pdfFileName = `${payload.number}.pdf`;
+    const pdfFileName = `${payload.number.replace(/[^a-zA-Z0-9\-_]/g, '_')}.pdf`;
     const dirHandle = await settingsStore.verifyQuoteDir();
 
     if (dirHandle) {
@@ -235,7 +235,7 @@ const generate = async (): Promise<void> => {
         <h3 class="card-title">Période du devis</h3>
         <div class="date-pickers">
           <div class="field">
-            <label>Date de début</label>
+            <label id="start-date-label">Date de début</label>
             <p class="date-display">{{ startDisplay }}</p>
             <n-date-picker
               v-model:value="startTimestamp"
@@ -245,6 +245,7 @@ const generate = async (): Promise<void> => {
               format="dd/MM/yyyy"
               :is-date-disabled="startDateDisabled"
               class="date-input"
+              aria-labelledby="start-date-label"
               @next-month="onStartNextMonth"
               @prev-month="onStartPrevMonth"
               @next-year="onStartNextYear"
@@ -252,7 +253,7 @@ const generate = async (): Promise<void> => {
             />
           </div>
           <div class="field">
-            <label>Date de fin</label>
+            <label id="end-date-label">Date de fin</label>
             <p class="date-display">{{ endDisplay }}</p>
             <n-date-picker
               v-model:value="endTimestamp"
@@ -262,6 +263,7 @@ const generate = async (): Promise<void> => {
               format="dd/MM/yyyy"
               :is-date-disabled="endDateDisabled"
               class="date-input"
+              aria-labelledby="end-date-label"
               @next-month="onEndNextMonth"
               @prev-month="onEndPrevMonth"
               @next-year="onEndNextYear"
@@ -340,7 +342,7 @@ const generate = async (): Promise<void> => {
         </p>
       </n-modal>
 
-      <n-alert v-if="errorMessage" type="error" :show-icon="false">{{
+      <n-alert v-if="errorMessage" type="error" role="alert" :show-icon="false">{{
         errorMessage
       }}</n-alert>
     </div>

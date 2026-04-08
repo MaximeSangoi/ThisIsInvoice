@@ -49,23 +49,26 @@ const goMonth = (yearMonth: string) => {
 <template>
   <div class="panel">
     <div class="year-header">
-      <n-button quaternary circle @click="year--">
+      <n-button quaternary circle aria-label="Année précédente" @click="year--">
         <template #icon><n-icon><ChevronBack /></n-icon></template>
       </n-button>
       <h2>{{ year }}</h2>
-      <n-button quaternary circle @click="year++">
+      <n-button quaternary circle aria-label="Année suivante" @click="year++">
         <template #icon><n-icon><ChevronForward /></n-icon></template>
       </n-button>
     </div>
 
     <n-spin v-if="loading" class="center-spin" />
 
-    <div v-else class="month-grid">
+    <div v-else class="month-grid" role="list">
       <n-card
         v-for="m in monthCards"
         :key="m.yearMonth"
         hoverable
         class="month-card"
+        role="listitem"
+        tabindex="0"
+        :aria-label="`${m.label} — ${m.total > 0 ? m.justified + '/' + m.total + ' justifiées' : 'Aucune dépense'}`"
         @click="goMonth(m.yearMonth)"
       >
         <div class="month-name">{{ m.label }}</div>

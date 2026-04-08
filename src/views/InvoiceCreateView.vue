@@ -62,6 +62,7 @@ const renderClientLabel = (option: {
     children.push(
       h("img", {
         src: option.logo,
+        alt: "Logo du client",
         style:
           "width:20px;height:20px;object-fit:contain;border-radius:3px;margin-right:8px;vertical-align:middle",
       }),
@@ -346,7 +347,7 @@ const generate = async (): Promise<void> => {
 
     const generated = await generateInvoiceArtifacts(payload);
 
-    const pdfFileName = `${payload.number}.pdf`;
+    const pdfFileName = `${payload.number.replace(/[^a-zA-Z0-9\-_]/g, '_')}.pdf`;
 
     if (dirHandle) {
       await saveToDir(dirHandle, generated.pdfBytes, pdfFileName);
@@ -375,10 +376,10 @@ const generate = async (): Promise<void> => {
 <template>
   <section class="invoice-quick-page">
     <div class="invoice-quick-form">
-      <n-alert v-if="successMessage" type="success" :show-icon="false">{{
+      <n-alert v-if="successMessage" type="success" role="status" :show-icon="false">{{
         successMessage
       }}</n-alert>
-      <n-alert v-if="errorMessage" type="error" :show-icon="false">{{
+      <n-alert v-if="errorMessage" type="error" role="alert" :show-icon="false">{{
         errorMessage
       }}</n-alert>
     </div>
