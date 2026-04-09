@@ -75,7 +75,22 @@ const periodMonth = computed(() => {
   return `${y}-${m}`;
 });
 
-const monthInvoices = computed(() => invoicesStore.getByMonth(periodMonth.value));
+const monthInvoices = computed(() => {
+  const all = invoicesStore.getByMonth(periodMonth.value);
+  // Group by version key (e.g. "202601-ACME"), keep only the paid representative
+  const groups = new Map<string, typeof all>();
+  for (const r of all) {
+    const key = r.number.slice(0, r.number.lastIndexOf('-')) || r.number;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(r);
+  }
+  const result: typeof all = [];
+  for (const members of groups.values()) {
+    const paid = members.find(m => m.paidAt);
+    if (paid) result.push(paid);
+  }
+  return result;
+});
 const totalRevenue = computed(() => monthInvoices.value.reduce((sum, r) => sum + r.netAmount, 0));
 
 // Filtered & sorted expenses

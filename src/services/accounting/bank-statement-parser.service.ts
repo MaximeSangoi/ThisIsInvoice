@@ -7,32 +7,71 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).href
 
-/** Extract all visible text lines from a PDF file. */
-async function extractTextFromPdf(file: File): Promise<string[]> {
+interface ExtractedLine {
+  text: string
+  isCredit: boolean
+}
+
+/**
+ * Extract all visible text lines from a PDF file.
+ * Detects "Débit" / "Crédit" column headers and uses x-coordinates
+ * to determine whether each line's amount falls in the credit column.
+ */
+async function extractLinesFromPdf(file: File): Promise<ExtractedLine[]> {
   const buffer = await file.arrayBuffer()
   const doc = await pdfjs.getDocument({ data: buffer }).promise
-  const lines: string[] = []
+  const result: ExtractedLine[] = []
 
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i)
     const content = await page.getTextContent()
+
+    // First pass: locate "Débit" and "Crédit" column header x-positions
+    let debitX: number | null = null
+    let creditX: number | null = null
+    for (const item of content.items) {
+      if (!('str' in item)) continue
+      const str = item.str.trim()
+      const x = (item as any).transform?.[4] ?? 0
+      if (/^d[ée]bit$/i.test(str)) debitX = x
+      if (/^cr[ée]dit$/i.test(str)) creditX = x
+    }
+
+    // Second pass: build lines (same grouping logic) + track rightmost numeric x
     let currentLine = ''
     let lastY: number | null = null
+    let rightmostNumericX = 0
+
+    const flush = () => {
+      if (currentLine.trim()) {
+        let isCredit = false
+        if (debitX !== null && creditX !== null) {
+          const midpoint = (debitX + creditX) / 2
+          isCredit = rightmostNumericX > midpoint
+        }
+        result.push({ text: currentLine.trim(), isCredit })
+      }
+      currentLine = ''
+      rightmostNumericX = 0
+    }
 
     for (const item of content.items) {
       if (!('str' in item)) continue
+      const x = (item as any).transform?.[4] ?? 0
       const y = (item as any).transform?.[5] ?? 0
       if (lastY !== null && Math.abs(y - lastY) > 2) {
-        if (currentLine.trim()) lines.push(currentLine.trim())
-        currentLine = ''
+        flush()
       }
       currentLine += item.str
+      if (/\d/.test(item.str) && x > rightmostNumericX) {
+        rightmostNumericX = x
+      }
       lastY = y
     }
-    if (currentLine.trim()) lines.push(currentLine.trim())
+    flush()
   }
 
-  return lines
+  return result
 }
 
 /**
@@ -110,6 +149,8 @@ export function filterDuplicateExpenses(
 }
 
 export async function parseBankStatementPdf(file: File): Promise<Expense[]> {
-  const lines = await extractTextFromPdf(file)
-  return parseBankStatementLines(lines)
+  const extracted = await extractLinesFromPdf(file)
+  // Only keep debit lines (expenses). Credit lines are income, not expenses.
+  const debitLines = extracted.filter(l => !l.isCredit).map(l => l.text)
+  return parseBankStatementLines(debitLines)
 }
