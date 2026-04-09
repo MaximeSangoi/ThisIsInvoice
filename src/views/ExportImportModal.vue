@@ -82,13 +82,16 @@ const hasClients = computed(
 const hasAccounting = computed(
   () => (importFile.value?.accountingMonths?.length ?? 0) > 0
 );
+const hasPayments = computed(
+  () => (importFile.value?.invoicePayments?.length ?? 0) > 0
+);
 
 const canImport = computed(() => {
   if (!importFile.value) return false;
   return (
     (importSettings.value && hasSettings.value) ||
     (importClients.value && hasClients.value) ||
-    (importAccounting.value && hasAccounting.value)
+    (importAccounting.value && (hasAccounting.value || hasPayments.value))
   );
 });
 
@@ -130,6 +133,8 @@ const onImport = async (): Promise<void> => {
     if (summary.clients > 0) parts.push(`${summary.clients} client(s)`);
     if (summary.accountingMonths > 0)
       parts.push(`${summary.accountingMonths} mois de comptabilité`);
+    if (summary.invoicePayments > 0)
+      parts.push(`${summary.invoicePayments} paiement(s)`);
 
     notification.success({
       content: `Import réussi : ${parts.join(", ")}.`,
@@ -256,13 +261,13 @@ const onDrop = (event: DragEvent): void => {
             </n-checkbox>
             <n-checkbox
               v-model:checked="importAccounting"
-              :disabled="!hasAccounting"
+              :disabled="!hasAccounting && !hasPayments"
             >
               Comptabilité
-              <template v-if="hasAccounting">
-                ({{ importFile.accountingMonths!.length }} mois)
+              <template v-if="hasAccounting || hasPayments">
+                (<template v-if="hasAccounting">{{ importFile.accountingMonths!.length }} mois</template><template v-if="hasAccounting && hasPayments">, </template><template v-if="hasPayments">{{ importFile.invoicePayments!.length }} paiement(s)</template>)
               </template>
-              <span v-else class="muted"> (absent)</span>
+              <span v-if="!hasAccounting && !hasPayments" class="muted"> (absent)</span>
             </n-checkbox>
           </div>
 

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { AccountingMonth, Expense } from '../domain/accounting/types'
+import type { AccountingMonth, Expense, ExpenseCategory } from '../domain/accounting/types'
 import { listAccountingMonths, loadAccountingMonth, saveAccountingMonth } from '../services/storage/local-db'
 
 export const useAccountingStore = defineStore('accounting', () => {
@@ -61,6 +61,14 @@ export const useAccountingStore = defineStore('accounting', () => {
     await saveMonth(month)
   }
 
+  const updateExpenseCategory = async (yearMonth: string, expenseId: string, category?: ExpenseCategory): Promise<void> => {
+    const month = await getMonth(yearMonth)
+    const expense = month.expenses.find((e) => e.id === expenseId)
+    if (!expense) return
+    expense.category = category
+    await saveMonth(month)
+  }
+
   return {
     months,
     initialized,
@@ -71,5 +79,6 @@ export const useAccountingStore = defineStore('accounting', () => {
     addExpense,
     removeExpense,
     importExpenses,
+    updateExpenseCategory,
   }
 })

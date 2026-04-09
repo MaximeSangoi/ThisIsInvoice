@@ -1,12 +1,13 @@
 import Dexie, { type Table } from 'dexie'
 import { toRaw } from 'vue'
 import type { ClientProfile, CompanyProfile } from '../../domain/invoice/types'
-import type { AccountingMonth } from '../../domain/accounting/types'
+import type { AccountingMonth, InvoicePaymentInfo } from '../../domain/accounting/types'
 
 class TiiDatabase extends Dexie {
   settings!: Table<CompanyProfile, string>
   clients!: Table<ClientProfile, string>
   accountingMonths!: Table<AccountingMonth, string>
+  invoicePayments!: Table<InvoicePaymentInfo, string>
 
   constructor() {
     super('tii-db')
@@ -31,6 +32,19 @@ class TiiDatabase extends Dexie {
       settings: 'id',
       clients: 'id,legalName',
       accountingMonths: 'yearMonth',
+    })
+    this.version(5).stores({
+      settings: 'id',
+      clients: 'id,legalName',
+      accountingMonths: 'yearMonth',
+      invoiceRecords: 'id,number,periodMonth,clientId',
+    })
+    this.version(6).stores({
+      settings: 'id',
+      clients: 'id,legalName',
+      accountingMonths: 'yearMonth',
+      invoiceRecords: null,  // drop old table
+      invoicePayments: 'invoiceNumber',
     })
   }
 }
@@ -122,3 +136,19 @@ export const saveAccountingMonth = async (month: AccountingMonth): Promise<void>
 
 export const listAccountingMonths = async (): Promise<AccountingMonth[]> =>
   db.accountingMonths.toArray()
+
+// --- Invoice payments (payment status only, invoices come from PDF scan) ---
+
+export const saveInvoicePayment = async (payment: InvoicePaymentInfo): Promise<void> => {
+  await db.invoicePayments.put(toPlain(payment))
+}
+
+export const deleteInvoicePayment = async (invoiceNumber: string): Promise<void> => {
+  await db.invoicePayments.delete(invoiceNumber)
+}
+
+export const listInvoicePayments = async (): Promise<InvoicePaymentInfo[]> =>
+  db.invoicePayments.toArray()
+
+export const loadInvoicePayment = async (invoiceNumber: string): Promise<InvoicePaymentInfo | undefined> =>
+  db.invoicePayments.get(invoiceNumber)

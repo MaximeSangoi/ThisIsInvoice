@@ -35,10 +35,12 @@ import { scanInvoiceDirectory } from "../services/invoice/invoice-scanner.servic
 import { generateInvoiceArtifacts } from "../services/invoice/invoice-generator.service";
 import { useClientsStore } from "../stores/clients.store";
 import { useSettingsStore } from "../stores/settings.store";
+import { useInvoicesStore } from "../stores/invoices.store";
 import { useIsMobile } from "../composables/useIsMobile";
 
 const settingsStore = useSettingsStore();
 const clientsStore = useClientsStore();
+const invoicesStore = useInvoicesStore();
 const notification = useNotification();
 const isMobile = useIsMobile();
 const activeClient = computed(() => clientsStore.selectedClient);
@@ -146,7 +148,50 @@ const openPdf = async (fileName: string): Promise<void> => {
   window.open(url, "_blank");
 };
 
-onMounted(scanHistory);
+onMounted(async () => {
+  const dirHandle = await settingsStore.verifyOutputDir();
+  await invoicesStore.initialize(dirHandle);
+  await scanHistory();
+});
+
+// --- Payment tracking ---
+const getPaymentRecord = (invoiceNumber: string) =>
+  invoicesStore.records.find((r) => r.number === invoiceNumber);
+
+const todayIso = new Date().toISOString().slice(0, 10);
+
+const paymentStatus = (invoiceNumber: string): 'paid' | 'overdue' | 'pending' | 'archived' => {
+  const record = getPaymentRecord(invoiceNumber);
+  if (!record) return 'pending';
+  if (record.archived) return 'archived';
+  if (record.paidAt) return 'paid';
+  if (record.dueDate < todayIso) return 'overdue';
+  return 'pending';
+};
+
+const paymentLabel = (status: 'paid' | 'overdue' | 'pending' | 'archived') => {
+  if (status === 'paid') return 'Payée';
+  if (status === 'overdue') return 'En retard';
+  if (status === 'archived') return 'Archivée';
+  return 'En attente';
+};
+
+const paymentTagType = (status: 'paid' | 'overdue' | 'pending' | 'archived') => {
+  if (status === 'paid') return 'success' as const;
+  if (status === 'overdue') return 'error' as const;
+  if (status === 'archived') return 'default' as const;
+  return 'warning' as const;
+};
+
+const togglePaid = async (invoiceNumber: string) => {
+  const record = getPaymentRecord(invoiceNumber);
+  if (!record || record.archived) return;
+  if (record.paidAt) {
+    await invoicesStore.markAsUnpaid(invoiceNumber);
+  } else {
+    await invoicesStore.markAsPaid(invoiceNumber, record.grossAmount);
+  }
+};
 
 const toIsoDate = (date: Date): string => date.toISOString().slice(0, 10);
 const today = new Date();
@@ -364,6 +409,7 @@ const generate = async (): Promise<void> => {
     }
 
     await scanHistory();
+    await invoicesStore.initialize(dirHandle, true);
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : "Erreur lors de la génération.";
@@ -415,12 +461,13 @@ const generate = async (): Promise<void> => {
               <th>Période</th>
               <th v-if="!isMobile">Client</th>
               <th>TTC</th>
+              <th>Statut</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="hasMore" class="row-load-more" @click="loadMore">
-              <td :colspan="5" class="load-more-cell">
+              <td :colspan="6" class="load-more-cell">
                 Charger plus de factures
               </td>
             </tr>
@@ -448,6 +495,18 @@ const generate = async (): Promise<void> => {
               </td>
               <td v-if="!isMobile">{{ row.latest.buyerName }}</td>
               <td>{{ formatCurrency(row.latest.grossAmount) }}</td>
+              <td>
+                <n-tag
+                  size="small"
+                  :bordered="false"
+                  round
+                  :type="paymentTagType(paymentStatus(row.latest.number))"
+                  :class="{ 'payment-tag': paymentStatus(row.latest.number) !== 'archived' }"
+                  @click.stop="togglePaid(row.latest.number)"
+                >
+                  {{ paymentLabel(paymentStatus(row.latest.number)) }}
+                </n-tag>
+              </td>
               <td>
                 <n-icon
                   size="16"
@@ -481,6 +540,18 @@ const generate = async (): Promise<void> => {
                 </td>
                 <td v-if="!isMobile">{{ old.buyerName }}</td>
                 <td>{{ formatCurrency(old.grossAmount) }}</td>
+                <td>
+                  <n-tag
+                    size="small"
+                    :bordered="false"
+                    round
+                    :type="paymentTagType(paymentStatus(old.number))"
+                    :class="{ 'payment-tag': paymentStatus(old.number) !== 'archived' }"
+                    @click.stop="togglePaid(old.number)"
+                  >
+                    {{ paymentLabel(paymentStatus(old.number)) }}
+                  </n-tag>
+                </td>
                 <td>
                   <n-icon
                     size="16"
@@ -848,6 +919,10 @@ const generate = async (): Promise<void> => {
 .row-version td {
   opacity: 0.6;
   font-size: 0.82rem;
+}
+
+.payment-tag {
+  cursor: pointer;
 }
 
 .row-load-more {

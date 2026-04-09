@@ -1,6 +1,6 @@
 import type { ClientProfile, CompanyProfile } from '../../domain/invoice/types'
-import type { AccountingMonth } from '../../domain/accounting/types'
-import { listClients, listAccountingMonths, loadCompanyProfile, saveClient, saveAccountingMonth, saveCompanyProfile } from './local-db'
+import type { AccountingMonth, InvoicePaymentInfo } from '../../domain/accounting/types'
+import { listClients, listAccountingMonths, listInvoicePayments, loadCompanyProfile, saveClient, saveAccountingMonth, saveCompanyProfile, saveInvoicePayment } from './local-db'
 
 export interface ExportPayload {
   version: 1
@@ -8,6 +8,7 @@ export interface ExportPayload {
   companyProfile?: CompanyProfile
   clients?: ClientProfile[]
   accountingMonths?: AccountingMonth[]
+  invoicePayments?: InvoicePaymentInfo[]
 }
 
 export interface ExportOptions {
@@ -20,6 +21,7 @@ export type ImportSummary = {
   settings: boolean
   clients: number
   accountingMonths: number
+  invoicePayments: number
 }
 
 export const exportData = async (options: ExportOptions): Promise<ExportPayload> => {
@@ -39,6 +41,7 @@ export const exportData = async (options: ExportOptions): Promise<ExportPayload>
 
   if (options.accounting) {
     payload.accountingMonths = await listAccountingMonths()
+    payload.invoicePayments = await listInvoicePayments()
   }
 
   return payload
@@ -73,6 +76,14 @@ const isValidPayload = (data: unknown): data is ExportPayload => {
     }
   }
 
+  if (obj.invoicePayments !== undefined) {
+    if (!Array.isArray(obj.invoicePayments)) return false
+    for (const p of obj.invoicePayments) {
+      if (typeof p !== 'object' || p === null) return false
+      if (typeof (p as Record<string, unknown>).invoiceNumber !== 'string') return false
+    }
+  }
+
   return true
 }
 
@@ -92,7 +103,7 @@ export const parseExportFile = (json: string): ExportPayload => {
 }
 
 export const importData = async (payload: ExportPayload, options: ExportOptions): Promise<ImportSummary> => {
-  const summary: ImportSummary = { settings: false, clients: 0, accountingMonths: 0 }
+  const summary: ImportSummary = { settings: false, clients: 0, accountingMonths: 0, invoicePayments: 0 }
 
   if (options.settings && payload.companyProfile) {
     await saveCompanyProfile(payload.companyProfile)
@@ -111,6 +122,13 @@ export const importData = async (payload: ExportPayload, options: ExportOptions)
       await saveAccountingMonth(month)
     }
     summary.accountingMonths = payload.accountingMonths.length
+  }
+
+  if (options.accounting && payload.invoicePayments) {
+    for (const payment of payload.invoicePayments) {
+      await saveInvoicePayment(payment)
+    }
+    summary.invoicePayments = payload.invoicePayments.length
   }
 
   return summary

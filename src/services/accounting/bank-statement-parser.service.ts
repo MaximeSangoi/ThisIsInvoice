@@ -78,6 +78,37 @@ export function parseBankStatementLines(lines: string[]): Expense[] {
   return expenses
 }
 
+/**
+ * Build a fingerprint for an expense to detect duplicates.
+ * Uses date + amount + normalized label (lowercased, trimmed).
+ */
+function expenseFingerprint(e: Pick<Expense, 'date' | 'amount' | 'label'>): string {
+  return `${e.date}|${e.amount}|${e.label.toLowerCase().trim()}`
+}
+
+/**
+ * Filter out expenses that already exist in the given month.
+ * Returns { newExpenses, duplicateCount }.
+ */
+export function filterDuplicateExpenses(
+  incoming: Expense[],
+  existing: Expense[],
+): { newExpenses: Expense[]; duplicateCount: number } {
+  const existingFingerprints = new Set(existing.map(expenseFingerprint))
+  const newExpenses: Expense[] = []
+  let duplicateCount = 0
+
+  for (const expense of incoming) {
+    if (existingFingerprints.has(expenseFingerprint(expense))) {
+      duplicateCount++
+    } else {
+      newExpenses.push(expense)
+    }
+  }
+
+  return { newExpenses, duplicateCount }
+}
+
 export async function parseBankStatementPdf(file: File): Promise<Expense[]> {
   const lines = await extractTextFromPdf(file)
   return parseBankStatementLines(lines)
