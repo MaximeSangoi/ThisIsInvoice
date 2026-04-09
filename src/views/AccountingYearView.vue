@@ -110,12 +110,8 @@ const goMonth = (yearMonth: string) => {
           @click="goMonth(m.yearMonth)"
         >
           <div class="month-name">{{ m.label }}</div>
-          <div class="month-revenue" v-if="m.revenue > 0">
-            CA : {{ formatCurrency(m.revenue) }}
-          </div>
           <div class="month-stat" v-if="m.total > 0">
             {{ m.justified }}/{{ m.total }} justifiées
-            <span class="month-expense-total">— {{ formatCurrency(m.expenses) }}</span>
           </div>
           <div class="month-stat empty" v-else>Aucune dépense</div>
           <div class="month-result" v-if="m.revenue > 0 || m.expenses > 0" :class="{ negative: m.result < 0 }">
@@ -201,20 +197,12 @@ const goMonth = (yearMonth: string) => {
   font-weight: 600;
   margin-bottom: 0.3rem;
 }
-.month-revenue {
-  font-size: 0.82rem;
-  color: #2a7d5f;
-  font-weight: 600;
-}
 .month-stat {
   font-size: 0.85rem;
   color: #364b63;
 }
 .month-stat.empty {
   color: #aaa;
-}
-.month-expense-total {
-  color: #888;
 }
 .month-result {
   font-size: 0.85rem;

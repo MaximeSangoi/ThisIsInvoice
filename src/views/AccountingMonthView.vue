@@ -338,8 +338,7 @@ const importPdf = async (file: File) => {
       </n-button>
       <h2>{{ monthLabel }}</h2>
       <div class="badge" v-if="totalCount > 0">
-        {{ justifiedCount }}/{{ totalCount }} justifiées — Total :
-        {{ formatCurrency(totalAmount) }}
+        {{ justifiedCount }}/{{ totalCount }} justifiées
       </div>
     </div>
 
