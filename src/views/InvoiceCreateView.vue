@@ -37,6 +37,7 @@ import { useClientsStore } from "../stores/clients.store";
 import { useSettingsStore } from "../stores/settings.store";
 import { useInvoicesStore } from "../stores/invoices.store";
 import { useIsMobile } from "../composables/useIsMobile";
+import { saveMonthlyInvoiceStatus } from "../services/storage/local-db";
 
 const settingsStore = useSettingsStore();
 const clientsStore = useClientsStore();
@@ -235,6 +236,8 @@ const billing = reactive({
 const errorMessage = ref("");
 const successMessage = ref("");
 const generating = ref(false);
+const lastGeneratedNumber = ref<string | null>(null);
+const lastGeneratedMonth = ref<string | null>(null);
 
 const canGenerate = computed(
   () => billing.workedDays > 0 && activeClient.value !== null,
@@ -408,6 +411,12 @@ const generate = async (): Promise<void> => {
       });
     }
 
+    // Track generation status for end-of-month reminder
+    const periodYearMonth = billing.periodMonth; // 'YYYY-MM'
+    await saveMonthlyInvoiceStatus({ yearMonth: periodYearMonth, generated: true, dismissedAt: null });
+    lastGeneratedNumber.value = payload.number;
+    lastGeneratedMonth.value = periodYearMonth;
+
     await scanHistory();
     await invoicesStore.initialize(dirHandle, true);
   } catch (error) {
@@ -428,6 +437,22 @@ const generate = async (): Promise<void> => {
       <n-alert v-if="errorMessage" type="error" role="alert" :show-icon="false">{{
         errorMessage
       }}</n-alert>
+
+      <!-- Email shortcut shown after a successful generation -->
+      <div
+        v-if="lastGeneratedNumber && settingsStore.reminderEmail"
+        class="email-shortcut"
+      >
+        <a
+          :href="`mailto:${settingsStore.reminderEmail}?subject=Facture ${lastGeneratedNumber}&body=Bonjour,%0D%0A%0D%0AVeuillez trouver ci-joint la facture ${lastGeneratedNumber}.%0D%0A%0D%0ACordialement`"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <n-button size="small" secondary>
+            Envoyer par email à {{ settingsStore.reminderEmail }}
+          </n-button>
+        </a>
+      </div>
     </div>
 
     <n-card class="invoice-history-card" :bordered="false">
@@ -1024,6 +1049,13 @@ const generate = async (): Promise<void> => {
   .invoice-quick-drawer {
     width: 100% !important;
     margin: 0 !important;
+  }
+}
+
+.email-shortcut {
+  margin-top: 0.6rem;
+  a {
+    text-decoration: none;
   }
 }
 </style>

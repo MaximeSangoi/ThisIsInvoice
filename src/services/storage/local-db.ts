@@ -3,11 +3,18 @@ import { toRaw } from 'vue'
 import type { ClientProfile, CompanyProfile } from '../../domain/invoice/types'
 import type { AccountingMonth, InvoicePaymentInfo } from '../../domain/accounting/types'
 
+export interface MonthlyInvoiceStatus {
+  yearMonth: string        // 'YYYY-MM' — primary key
+  generated: boolean
+  dismissedAt: string | null  // ISO datetime of last dismissal
+}
+
 class TiiDatabase extends Dexie {
   settings!: Table<CompanyProfile, string>
   clients!: Table<ClientProfile, string>
   accountingMonths!: Table<AccountingMonth, string>
   invoicePayments!: Table<InvoicePaymentInfo, string>
+  monthlyInvoiceStatus!: Table<MonthlyInvoiceStatus, string>
 
   constructor() {
     super('tii-db')
@@ -45,6 +52,13 @@ class TiiDatabase extends Dexie {
       accountingMonths: 'yearMonth',
       invoiceRecords: null,  // drop old table
       invoicePayments: 'invoiceNumber',
+    })
+    this.version(7).stores({
+      settings: 'id',
+      clients: 'id,legalName',
+      accountingMonths: 'yearMonth',
+      invoicePayments: 'invoiceNumber',
+      monthlyInvoiceStatus: 'yearMonth',
     })
   }
 }
@@ -152,3 +166,23 @@ export const listInvoicePayments = async (): Promise<InvoicePaymentInfo[]> =>
 
 export const loadInvoicePayment = async (invoiceNumber: string): Promise<InvoicePaymentInfo | undefined> =>
   db.invoicePayments.get(invoiceNumber)
+
+// --- Monthly invoice generation status (used for end-of-month reminders) ---
+
+export const loadMonthlyInvoiceStatus = async (yearMonth: string): Promise<MonthlyInvoiceStatus | undefined> =>
+  db.monthlyInvoiceStatus.get(yearMonth)
+
+export const saveMonthlyInvoiceStatus = async (status: MonthlyInvoiceStatus): Promise<void> => {
+  await db.monthlyInvoiceStatus.put(toPlain(status))
+}
+
+// --- Reminder email (stored as a settings record) ---
+
+export const loadReminderEmail = async (): Promise<string | null> => {
+  const record = await db.settings.get('reminder-email') as { id: string; value: string } | undefined
+  return record?.value ?? null
+}
+
+export const saveReminderEmail = async (email: string): Promise<void> => {
+  await db.settings.put({ id: 'reminder-email', value: email } as any)
+}

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, toRaw } from 'vue'
 import type { CompanyProfile } from '../domain/invoice/types'
-import { loadCompanyProfile, saveCompanyProfile, loadOutputDirHandle, saveOutputDirHandle, clearOutputDirHandle, loadQuoteDirHandle, saveQuoteDirHandle, clearQuoteDirHandle, loadOnboardingCompleted, saveOnboardingCompleted } from '../services/storage/local-db'
+import { loadCompanyProfile, saveCompanyProfile, loadOutputDirHandle, saveOutputDirHandle, clearOutputDirHandle, loadQuoteDirHandle, saveQuoteDirHandle, clearQuoteDirHandle, loadOnboardingCompleted, saveOnboardingCompleted, loadReminderEmail, saveReminderEmail } from '../services/storage/local-db'
 
 const defaultCompanyProfile = (): CompanyProfile => ({
   id: 'company-profile',
@@ -27,6 +27,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const outputDirName = ref<string | null>(null)
   const quoteDirHandle = ref<FileSystemDirectoryHandle | null>(null)
   const quoteDirName = ref<string | null>(null)
+  const reminderEmail = ref<string>('')
 
   const isConfigured = computed(
     () =>
@@ -63,6 +64,9 @@ export const useSettingsStore = defineStore('settings', () => {
 
     onboardingCompleted.value = await loadOnboardingCompleted()
 
+    const savedEmail = await loadReminderEmail()
+    reminderEmail.value = savedEmail ?? ''
+
     initialized.value = true
   }
 
@@ -73,6 +77,10 @@ export const useSettingsStore = defineStore('settings', () => {
 
   const save = async (): Promise<void> => {
     await saveCompanyProfile(JSON.parse(JSON.stringify(companyProfile.value)))
+  }
+
+  const saveEmail = async (): Promise<void> => {
+    await saveReminderEmail(reminderEmail.value)
   }
 
   const pickOutputDir = async (): Promise<void> => {
@@ -134,8 +142,10 @@ export const useSettingsStore = defineStore('settings', () => {
     outputDirName,
     quoteDirHandle,
     quoteDirName,
+    reminderEmail,
     initialize,
     save,
+    saveEmail,
     completeOnboarding,
     pickOutputDir,
     removeOutputDir,

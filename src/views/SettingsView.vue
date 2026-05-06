@@ -673,6 +673,24 @@ watch(isMobile, (mobile) => {
       </div>
     </template>
   </n-modal>
+
+  <n-card class="panel panel-notifications mt-1" :bordered="false">
+    <h2>Notifications</h2>
+    <p class="meta">
+      Le dernier jour du mois, l'application vous rappelle si aucune facture n'a été générée.
+      Renseignez une adresse email pour afficher un lien de pré-remplissage rapide après chaque génération.
+    </p>
+    <div class="field" style="max-width: 400px">
+      <label for="reminderEmail">Email destinataire (facturation)</label>
+      <n-input
+        id="reminderEmail"
+        v-model:value="settingsStore.reminderEmail"
+        placeholder="client@entreprise.fr"
+        type="email"
+        @blur="settingsStore.saveEmail()"
+      />
+    </div>
+  </n-card>
 </template>
 
 <style scoped>

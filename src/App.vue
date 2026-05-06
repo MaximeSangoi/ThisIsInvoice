@@ -12,7 +12,7 @@ import { useClientsStore } from "./stores/clients.store";
 import { useSettingsStore } from "./stores/settings.store";
 import { useIsMobile } from "./composables/useIsMobile";
 import { useSwipeNavigation } from "./composables/useSwipeNavigation";
-
+import MonthEndReminder from './components/MonthEndReminder.vue'
 const settingsStore = useSettingsStore();
 const clientsStore = useClientsStore();
 const isMobile = useIsMobile();
@@ -52,6 +52,7 @@ const themeOverrides: GlobalThemeOverrides = {
 <template>
   <n-config-provider :theme-overrides="themeOverrides">
     <n-notification-provider>
+      <MonthEndReminder />
       <div class="app-shell">
         <header class="app-header">
           <nav class="main-nav">

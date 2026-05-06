@@ -44,6 +44,12 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: "autoUpdate",
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+      },
       includeAssets: ["favicon.ico"],
       manifest: {
         name: "ThisIsInvoice!",
@@ -72,11 +78,6 @@ export default defineConfig({
             purpose: "any",
           },
         ],
-      },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        skipWaiting: true,
-        clientsClaim: true,
       },
     }),
   ],
